@@ -22,23 +22,11 @@
 // @run-at       document-idle
 // ==/UserScript==
 
-/* global JSZip, GM_xmlhttpRequest, GM_registerMenuCommand */
-/*
- * Install in Tampermonkey, then open a New Quiz's Build page.
- *
- * The only Canvas action needed is clicking its existing Create Export button.
- * No API token, private endpoint, quiz edits, or external conversion service.
- * The native UI adapter expects English labels; edit CONFIG for other locales.
- *
- * Format target: Canvas/New Quizzes QTI 1.2, including common Canvas extensions.
- * Unknown/missing content is explicitly flagged and raw item XML is preserved
- * for flagged questions. QTI 2/3 is rejected, not silently misconverted.
- * Review the output before distributing; it intentionally contains answers.
- */
+
 (function () {
     'use strict';
 
-    // Fix JSZip/DOCX scheduling inside Tampermonkey.
+    // Fix JSZip/DOCX scheduling inside Tampermonkey
     window.setImmediate = (callback, ...args) =>
     window.setTimeout(() => callback(...args), 0);
 
@@ -82,7 +70,7 @@
     const isResponse = el => /^response_(lid|str|num|xy|grp)$/.test(lname(el));
     const sourceRef = value => /^data:/i.test(value || '') ? '[embedded data]' : (value || '');
 
-    // A template is inert: quiz HTML is never inserted into the live page.
+    // A template is inert: quiz HTML is never inserted into the live page
     function htmlToText(html) {
         const template = document.createElement('template');
         template.innerHTML = html;
@@ -139,7 +127,7 @@
         return clean(leaves.map(el => {
             if (lname(el) === 'mattext') {
                 const raw = el.children.length ? Array.from(el.childNodes).map(xml).join('') : el.textContent;
-                // Plain-text answers can contain <, > and regex syntax; never treat them as HTML.
+                // Plain-text answers can contain <, > and regex syntax; never treat them as HTML
                 return el.getAttribute('texttype')?.toLowerCase() === 'text/html' || el.children.length ?
                     htmlToText(raw) : clean(raw);
             }
@@ -309,16 +297,17 @@
                 }
                 const declarations = descendants(first(item, 'resprocessing'), 'decvar');
                 if (rules.length) {
-                    lines.push('The conditions below preserve the exported scoring rules, including partial credit.');
-                    for (const dec of declarations) lines.push('Score definition: ' + attrText(dec));
+//                    lines.push('The conditions below preserve the exported scoring rules, including partial credit.');
+//                    for (const dec of declarations) lines.push('Score definition: ' + attrText(dec));
                     for (let i = 0; i < rules.length; i++) {
                         const rule = rules[i];
                         const cond = condition(first(rule, 'conditionvar'));
-                        const award = descendants(rule, 'setvar').map(v =>
-                                                                      (v.getAttribute('action') || 'Set') + ' ' + (v.getAttribute('varname') || 'SCORE') + ' ' + content(v)).join('; ');
-                        const marked = /^(yes|true)$/i.test(rule.getAttribute('correctanswer') || '') ? ' [marked correct in export]' : '';
-                        lines.push('  ' + (i + 1) + '. ' + cond + ' → ' + (award || 'marked correct') + marked +
-                                   ' [continue=' + (rule.getAttribute('continue') || 'No (QTI default)') + ']');
+                        lines.push('  ' + (i + 1) + '. ' + cond);
+//                        const award = descendants(rule, 'setvar').map(v =>
+//                                                                      (v.getAttribute('action') || 'Set') + ' ' + (v.getAttribute('varname') || 'SCORE') + ' ' + content(v)).join('; ');
+//                        const marked = /^(yes|true)$/i.test(rule.getAttribute('correctanswer') || '') ? ' [marked correct in export]' : '';
+//                        lines.push('  ' + (i + 1) + '. ' + cond + ' → ' + (award || 'marked correct') + marked +
+//                                   ' [continue=' + (rule.getAttribute('continue') || 'No (QTI default)') + ']');
                         const feedback = descendants(rule, 'displayfeedback').map(f => f.getAttribute('linkrefid')).filter(Boolean);
                         if (feedback.length) lines.push('     Feedback: ' + feedback.join(', '));
                     }
@@ -332,7 +321,7 @@
         }
         const settings = Array.from(meta.entries()).filter(([key]) =>
                                                            !['question_type', 'points_possible', 'original_answer_ids', 'assessment_question_identifierref', 'source_url'].includes(key));
-        if (settings.length) lines.push('', 'Exported settings:', ...settings.map(([k, v]) => '  ' + k + ': ' + v.join('; ')));
+//        if (settings.length) lines.push('', 'Exported settings:', ...settings.map(([k, v]) => '  ' + k + ': ' + v.join('; ')));
         if ((meta.get('question_type') || []).length > 1) review('Conflicting question-type metadata; inspect the raw item.');
         if (first(item, 'itemproc_extension') && !first(item, 'calculated')) review('Additional vendor answer data is present; inspect the raw item.');
         if (!/^(unspecified|multiple_choice_question|choice_question|true_false_question|multiple_answers_question|multiple_answer_question|short_answer_question|fill_in_multiple_blanks_question|fill_in_the_blank_question|fill_in_blank_question|multiple_blanks_question|multiple_dropdowns_question|matching_question|categorization_question|ordering_question|numerical_question|calculated_question|formula_question|hot_spot_question|essay_question|file_upload_question|text_only_question)$/.test(type)) {
@@ -439,7 +428,7 @@
                 return;
             }
             if (tag === 'section') {
-                if (node.getAttribute('title')) out.push('ITEM BANK: ' + node.getAttribute('title'), '');
+                if (node.getAttribute('title')) out.push('ITEM BANK: ' + node.getAttribute('title'));//, '');
                 const selection = first(direct(node, 'selection_ordering'), 'selection');
                 if (selection) {
                     const count = content(first(selection, 'selection_number'));
@@ -463,9 +452,9 @@
         }
         if (assessments.length) {
             for (const assessment of assessments) {
-                const out = ['ASSESSMENT: ' + (assessment.node.getAttribute('title') || 'Untitled'), 'QTI source: ' + assessment.path, ''];
+                const out = [];//['ASSESSMENT: ' + (assessment.node.getAttribute('title') || 'Untitled'), 'QTI source: ' + assessment.path, ''];
                 const instructions = materials(direct(assessment.node, 'presentation_material'));
-                if (instructions) out.push('Instructions:', instructions, '');
+//                if (instructions) out.push('Instructions:', instructions, '');
                 visit(assessment.node, out);
                 sections.push(out.join('\n'));
             }
@@ -474,20 +463,21 @@
                 const out = ['QTI source: ' + record.path, ''];
                 visit(record.doc.documentElement, out);
                 // questestinterop is a wrapper; visit() descends into all recognised children.
-                sections.push(out.join('\n'));
+//                sections.push(out.join('\n'));
             }
         }
         if (!questionCount && !stimulusCount && !missingCount) throw new Error('The QTI package contains no question items.');
         const notice = warnings.length ? ['REVIEW REQUIRED (' + warnings.length + '):', ...warnings.map(w => '- ' + w), ''] : [];
         const text = [
             title, '='.repeat(Math.min(72, Math.max(8, title.length))),
-            'Questions/candidates: ' + questionCount + ' | Stimuli: ' + stimulusCount + ' | Unresolved references: ' + missingCount,
-            'Source: ' + filename, 'Converted: ' + new Date().toISOString(), 'Converter: ' + VERSION, '',
-            'Contains answer keys. Question/choice order is the exported order, not a randomised student attempt.',
-            'Score values below are QTI scoring units; use each question’s Points value for its quiz weighting.',
-            'Images/media remain text references. Relative paths refer to the original QTI ZIP; retain it if needed.',
-            'Only content actually included in the export can be reproduced.', '',
-            ...notice, ...sections
+//            'Questions/candidates: ' + questionCount + ' | Stimuli: ' + stimulusCount + ' | Unresolved references: ' + missingCount,
+//            'Source: ' + filename, 'Converted: ' + new Date().toISOString(), 'Converter: ' + VERSION, '',
+//            'Contains answer keys. Question/choice order is the exported order, not a randomised student attempt.',
+//            'Score values below are QTI scoring units; use each question’s Points value for its quiz weighting.',
+//            'Images/media remain text references. Relative paths refer to the original QTI ZIP; retain it if needed.',
+//            'Only content actually included in the export can be reproduced.', '',
+//            ...notice,
+            ...sections
         ].join('\n');
         return { text, title, questionCount, stimulusCount, missingCount, warnings };
     }
